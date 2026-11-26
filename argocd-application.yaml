@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: etl-application
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/burhanuddin-123/etl-gitops-config.git
+    targetRevision: HEAD
+    path: app/etl/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
