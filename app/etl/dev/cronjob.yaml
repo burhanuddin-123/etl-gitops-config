@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etl-app
+spec:
+  # Hourly. Adjust as needed.
+  schedule: "0 * * * *"
+  # Never run two ETL runs at once: they share one ReadWriteOnce volume.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      # Delete each finished Job (and its pod) after 1 hour.
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: etl-app
+        spec:
+          # Retry the pod only on failure; a clean exit completes the Job.
+          restartPolicy: OnFailure
+          containers:
+          - name: etl-container
+            # The tag below is rewritten by the CI pipeline on every merge to main.
+            image: myregistry.azurecr.io/etl-app:initial
+            resources:
+              requests:
+                cpu: "250m"
+                memory: "256Mi"
+              limits:
+                cpu: "1"
+                memory: "1Gi"
+            volumeMounts:
+            - name: output-storage
+              mountPath: /app/output
+          volumes:
+          - name: output-storage
+            persistentVolumeClaim:
+              claimName: etl-output-pvc
